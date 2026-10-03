@@ -34,12 +34,12 @@ pkg() {
 clone_try() {
     NAME="$1"; shift
     if [ -d "$BASE/$NAME/.git" ]; then
-        git -C "$BASE/$NAME" pull -q >/dev/null 2>&1 && ok "$NAME updated" || warn "$NAME pull failed"
+        timeout 60 git -C "$BASE/$NAME" pull -q >/dev/null 2>&1 && ok "$NAME updated" || warn "$NAME pull failed"
         return
     fi
     log "$NAME: cloning..."
     for URL in "$@"; do
-        git clone --depth=1 -q "$URL" "$BASE/$NAME" >/dev/null 2>&1 && ok "$NAME cloned" && return
+        timeout 60 git clone --depth=1 -q "$URL" "$BASE/$NAME" >/dev/null 2>&1 && ok "$NAME cloned" && return
     done
     warn "$NAME clone FAILED (all URLs tried)"
 }
