@@ -1,11 +1,11 @@
-# RabiX Security Toolkit v8
+# RabiX Security Toolkit v9
 
 Universal security toolkit installer for **iSH on iPhone** (Alpine Linux / busybox ash) and **Kali Linux** (Debian).
 
 ## Install
 
 ```sh
-sh rabix_v7.sh
+sh rabix_v9.sh
 ```
 
 ## Tools Included
@@ -20,7 +20,7 @@ sh rabix_v7.sh
 | 5 | nexfil | Username OSINT |
 | 6 | maigret | Username OSINT with relationship graph |
 | 7 | SIGIT | Social intelligence toolkit |
-| 8 | hound | Phone/email OSINT |
+| 8 | holehe | Email to social media accounts OSINT |
 | 9 | X-osint | Full OSINT suite — phone, email, VIN, subdomain |
 | 10 | GhostTrack | Phone number + GPS location tracker |
 | 11 | r4ven | GPS location + photo + IP capture |
@@ -99,6 +99,14 @@ sh ~/SocialEngineer/menu.sh
 - 47 total tools across 4 categories
 
 ## Changelog
+
+### v9
+- **Stage 1 batched**: all system packages now installed in one `apk add` / `apt-get install` call (was 21 separate calls) — cuts install time significantly on Alpine/iSH
+- **Global pip pre-install**: installs 13 common packages (requests, colorama, bs4, lxml, pillow, dnspython, paramiko, pycryptodome, flask, werkzeug, tqdm, phonenumbers, python-whois) before any tool clones, so per-tool `pip_req()` is fast
+- **pip timeouts**: all pip3 calls now include `--timeout=30` / `--timeout=20` — no more hanging on a stuck package
+- **holehe replaces hound**: `hound` repo dead (all 3 URLs archived/removed); replaced with `holehe` (megadose/holehe) — active email-to-social OSINT tool, works via `python3 -m holehe`
+- **geo-recon fixed**: removed bad Osintgram fallback URL (different tool)
+- **README install command fixed**: was `sh rabix_v7.sh` — now correctly `sh rabix_v9.sh`
 
 ### v8
 - Bulletproof pip installs: `--prefer-binary` avoids C compilation failures on iSH Alpine

@@ -46,50 +46,51 @@ clone_try() {
 pip_req() {
     REQ="$BASE/$1/requirements.txt"
     [ -f "$REQ" ] || return 0
-    # attempt 1: prefer binary wheels, skip C compilation
-    pip3 install --break-system-packages --prefer-binary -q -r "$REQ" >/dev/null 2>&1 && return
+    # attempt 1: prefer binary wheels, skip C compilation, 30s timeout
+    pip3 install --break-system-packages --prefer-binary --timeout=30 -q -r "$REQ" >/dev/null 2>&1 && return
     # attempt 2: no-deps to avoid version conflicts
-    pip3 install --break-system-packages --prefer-binary --no-deps -q -r "$REQ" >/dev/null 2>&1 && return
+    pip3 install --break-system-packages --prefer-binary --no-deps --timeout=30 -q -r "$REQ" >/dev/null 2>&1 && return
     # attempt 3: package-by-package fallback — installs whatever succeeds
-    while IFS= read -r pkg; do
-        case "$pkg" in ''|\#*) continue ;; esac
-        pip3 install --break-system-packages --prefer-binary -q "$pkg" >/dev/null 2>&1 || true
+    while IFS= read -r line; do
+        case "$line" in ''|\#*) continue ;; esac
+        pip3 install --break-system-packages --prefer-binary --timeout=20 -q "$line" >/dev/null 2>&1 || true
     done < "$REQ"
 }
 clear
 echo "+======================================================+"
-echo "| RabiX Security Toolkit v8 -- Universal              |"
+echo "| RabiX Security Toolkit v9 -- Universal              |"
 echo "| OSINT  Phishing  RAT  Network  Social Engineer      |"
 echo "+======================================================+"
 
 # ── STAGE 1: System Dependencies ─────────────────────────────
 hdr "STAGE 1 -- System Dependencies"
-pkg python3 python3
-pkg py3-pip python3-pip
-pkg git git
-pkg curl curl
-pkg wget wget
-pkg unzip unzip
-pkg tar tar
-pkg openssh-client openssh-client
-pkg nmap nmap
-pkg build-base build-essential
-pkg tor tor
-pkg proxychains-ng proxychains4
-pkg jq jq
-pkg whois whois
-pkg bind-tools dnsutils
-pkg net-tools net-tools
-pkg openssl-dev libssl-dev
-pkg curl-dev libcurl4-openssl-dev
-pkg libpcap-dev libpcap-dev
-pkg sqlite sqlite3
-pkg go go
-# Alpine: pre-install common py3 packages via apk (avoids pip C compilation on iSH)
+# Batch install all system packages in one call (much faster than 21 individual calls)
 if [ "$OS" = "alpine" ]; then
-    apk add -q py3-requests py3-beautifulsoup4 py3-colorama py3-lxml py3-pillow >/dev/null 2>&1
-    ok "py3 common packages"
+    $S apk add -q \
+        python3 py3-pip git curl wget unzip tar openssh-client nmap \
+        build-base tor proxychains-ng jq whois bind-tools net-tools \
+        openssl-dev curl-dev libpcap-dev sqlite go \
+        >/dev/null 2>&1 && ok "system packages" || warn "some system packages skipped"
+else
+    $S apt-get install -y -qq \
+        python3 python3-pip git curl wget unzip tar openssh-client nmap \
+        build-essential tor proxychains4 jq whois dnsutils net-tools \
+        libssl-dev libcurl4-openssl-dev libpcap-dev sqlite3 golang-go \
+        >/dev/null 2>&1 && ok "system packages" || warn "some system packages skipped"
 fi
+# Alpine: pre-install common py3 apk packages (avoids pip C compilation on iSH)
+if [ "$OS" = "alpine" ]; then
+    $S apk add -q \
+        py3-requests py3-beautifulsoup4 py3-colorama py3-lxml py3-pillow \
+        py3-dnspython py3-pysocks py3-tqdm py3-flask py3-werkzeug \
+        >/dev/null 2>&1 && ok "py3 apk packages" || true
+fi
+# Global pip pre-install -- satisfies most tool requirements before cloning begins
+pip3 install --break-system-packages --prefer-binary --timeout=30 -q \
+    requests colorama beautifulsoup4 lxml pillow \
+    dnspython paramiko pycryptodome flask werkzeug \
+    tqdm fake-useragent phonenumbers python-whois \
+    pysocks urllib3 certifi >/dev/null 2>&1 && ok "pip pre-install" || true
 # PHP auto-detect on Alpine (try 83 -> 82 -> 8)
 if [ "$OS" = "alpine" ]; then
     apk add -q php83 >/dev/null 2>&1 || apk add -q php82 >/dev/null 2>&1 || apk add -q php8 >/dev/null 2>&1 || warn "php skipped"
@@ -154,12 +155,10 @@ clone_try SIGIT \
     https://github.com/SIGIT/sigit
 pip_req SIGIT
 
-# hound -- phone/email OSINT
-clone_try hound \
-    https://github.com/Ryuzakixiao/hound \
-    https://github.com/kaiiyer/hound \
-    https://github.com/TermuxHackz/hound
-pip_req hound
+# holehe -- email to social media accounts OSINT
+clone_try holehe \
+    https://github.com/megadose/holehe
+pip_req holehe
 
 # X-osint -- full OSINT suite (phone, email, VIN, subdomain, reverse lookup)
 clone_try X-osint \
@@ -198,8 +197,7 @@ pip_req CloakQuest3r
 
 # geo-recon -- GeoIP recon
 clone_try geo-recon \
-    https://github.com/radioactivetobi/geo-recon \
-    https://github.com/Datalux/Osintgram
+    https://github.com/radioactivetobi/geo-recon
 pip_req geo-recon
 
 # DIGI-NETRA -- digital footprint recon
@@ -463,11 +461,11 @@ run() {
 }
 while true; do
     clear
-    printf "${CYN}+==========================================+\n|  RabiX Security Toolkit v8 Menu        |\n+==========================================${NC}\n"
+    printf "${CYN}+==========================================+\n|  RabiX Security Toolkit v9 Menu        |\n+==========================================${NC}\n"
     printf "${YLW}-- OSINT ----------------------------------${NC}\n"
     echo " [1]  Aliens_eye   [2]  Mr.Holmes    [3]  Osintgram"
     echo " [4]  sherlock     [5]  nexfil       [6]  maigret"
-    echo " [7]  SIGIT        [8]  hound        [9]  X-osint"
+    echo " [7]  SIGIT        [8]  holehe       [9]  X-osint"
     echo " [10] GhostTrack   [11] r4ven        [12] seeker"
     echo " [13] PhoneInfoga  [14] CloakQuest3r [15] geo-recon"
     echo " [16] DIGI-NETRA   [17] Mohini       [18] OPRecon"
@@ -496,7 +494,7 @@ while true; do
         5)  run nexfil "python3 nexfil.py" ;;
         6)  run maigret "python3 -m maigret" ;;
         7)  run SIGIT "python3 sigit.py" ;;
-        8)  run hound "python3 hound.py" ;;
+        8)  run holehe "python3 -m holehe" ;;
         9)  run X-osint "python3 xosint.py" ;;
         10) run GhostTrack "python3 GhostTR.py" ;;
         11) run r4ven "python3 r4ven.py" ;;
@@ -546,6 +544,6 @@ ok "menu.sh ready"
 
 echo ""
 echo "+======================================================+"
-echo "| RabiX v8 install complete!                          |"
+echo "| RabiX v9 install complete!                          |"
 echo "| Run: sh ~/SocialEngineer/menu.sh                   |"
 echo "+======================================================+"
