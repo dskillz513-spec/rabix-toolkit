@@ -34,7 +34,7 @@ pkg() {
 clone_try() {
     NAME="$1"; shift
     if [ -d "$BASE/$NAME/.git" ]; then
-        timeout 60 git -C "$BASE/$NAME" pull -q >/dev/null 2>&1 && ok "$NAME updated" || warn "$NAME pull failed"
+        ok "$NAME already installed -- skipping"
         return
     fi
     log "$NAME: cloning..."
