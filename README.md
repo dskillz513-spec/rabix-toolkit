@@ -1,4 +1,4 @@
-# RabiX Security Toolkit v7
+# RabiX Security Toolkit v8
 
 Universal security toolkit installer for **iSH on iPhone** (Alpine Linux / busybox ash) and **Kali Linux** (Debian).
 
@@ -99,6 +99,12 @@ sh ~/SocialEngineer/menu.sh
 - 47 total tools across 4 categories
 
 ## Changelog
+
+### v8
+- Bulletproof pip installs: `--prefer-binary` avoids C compilation failures on iSH Alpine
+- `pip_req()` now tries 3 strategies: bulk binary → no-deps binary → per-package fallback loop
+- Alpine Stage 1: pre-installs `py3-requests py3-beautifulsoup4 py3-colorama py3-lxml py3-pillow` via apk
+- Eliminates `[!] pip failed` warnings on iSH — partial installs succeed instead of dying
 
 ### v7
 - Fixed `Aliens_eye` — replaced 3 dead URLs with `BLINKING-IDIOT/Aliens_eye` + fallbacks
